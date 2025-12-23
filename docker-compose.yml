@@ -1,0 +1,39 @@
+services:
+  app:
+    build:
+      context: ./docker/php-fpm
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/var/www/html
+      - vendor_data:/var/www/html/vendor
+    working_dir: /var/www/html
+    expose:
+      - "9000"
+
+  nginx:
+    image: nginx:alpine
+    container_name: laravel_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+
+  mysql:
+    image: mysql:8.0
+    container_name: laravel_mysql
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravel
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+  vendor_data:
