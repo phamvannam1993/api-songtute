@@ -46,9 +46,8 @@ class UserController extends Controller
       $percent = $positionItem ? $positionItem['percent'] : 0;
       // Thời gian hiện tại
       $now = new \DateTime();
-
+     
       if (!empty($item['password'])) {
-
          $existingUser = WpUser::where('user_email', $item['email'])->first();
          if (!$existingUser) {
             $user = WpUser::create([
@@ -66,7 +65,7 @@ class UserController extends Controller
              WpUsermeta::insert(
                 array_map(fn ($meta) => $meta->toArray(), $usermetas)
              );
-
+            
              if ($positionItem) {
 
                switch ($positionItem['name']) {
@@ -470,7 +469,7 @@ class UserController extends Controller
              "level" => 0,
              "to_price" => 0,
              "vuot_cap" => 0,
-             "percent" => 0,
+             "percent" => 15,
              "percent_f1" => 0,
              "percent_ds" => 0,
              "thuong_cap_bac" => 0,
