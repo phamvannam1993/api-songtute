@@ -41,14 +41,17 @@ class UserController extends Controller
               break;
           }
       }
+      if(empty($positionItem)) {
+         $positionItem = $positions[3];
+      }
       
       // Lấy percent
       $percent = $positionItem ? $positionItem['percent'] : 0;
       // Thời gian hiện tại
       $now = new \DateTime();
-    
+     
       if (!empty($item['password'])) {
-
+      
          $existingUser = WpUser::where('user_email', $item['email'])->first();
          if (!$existingUser) {
            
@@ -112,6 +115,9 @@ class UserController extends Controller
                });
                $this->referralsUser($item);
            }
+         } else {
+           
+            $this->referralsUser($item, $existingUser);
          }
          
      }
@@ -119,32 +125,54 @@ class UserController extends Controller
       return response()->json(['success' => true]);
    }
 
-   public function referralsUser(array $item): array
+   public function referralsUser(array $item, $user = null): array
    {
       // Điều kiện giống code gốc
       if (empty($item['coupon_parent']) || empty($item['password'])) {
          return ['message' => 'User không có coupon_parent hoặc password'];
       }
-
+   
       // Tìm user hiện tại theo user_code
       $userMeta = WpUsermeta::where('meta_key', 'user_code')
          ->where('meta_value', $item['coupon'])
          ->first();
-
+      
       if (!$userMeta) {
-         return ['message' => 'Không tìm thấy user hiện tại'];
+        
+         if(!empty($user)) {
+            WpUsermeta::insert([
+               'user_id' => $user->ID,
+               'meta_key' => 'user_code',
+               'meta_value' => $item['coupon'] ?? '',
+            ]);
+            $userMeta = WpUsermeta::where('meta_key', 'user_code')
+            ->where('meta_value', $item['coupon'])
+            ->first();
+         } else {
+            return ['message' => 'Không tìm thấy user hiện tại'];
+         }
       }
 
       // Tìm user hiện tại theo user_code
       $userMetaParent = WpUsermeta::where('meta_key', 'user_code')
          ->where('meta_value', $item['coupon_parent'])
          ->first();
-
+    
       if (!$userMetaParent) {
          return ['message' => 'Không tìm thấy user hiện tại'];
       }
       
       $userReferral = UserReferral::where('user_id', $userMeta->user_id)->where('parent_id', $userMetaParent->user_id)->where('level', 1)->first();
+      $user =  WpUser::where('ID', $userMeta->user_id)
+      ->first();
+      if(empty($user)) {
+         $userMeta = WpUsermeta::where('umeta_id', $userMeta->umeta_id)
+         ->delete();
+       
+         $userMeta = WpUsermeta::where('meta_key', 'user_code')
+         ->where('meta_value', $item['coupon'])
+         ->first();
+      }
       if(empty($userReferral)) {
          UserReferral::create([
             'user_id'             => $userMeta->user_id,
@@ -152,7 +180,15 @@ class UserController extends Controller
             'level'        => 1,
             'created_at'  => date('Y-m-d H:i:s')
          ]);
+      } else {
+         $userReferral->update([
+            'user_id'             => $userMeta->user_id,
+            'parent_id'  => $userMetaParent->user_id,
+            'level'        => 1,
+            'created_at'  => date('Y-m-d H:i:s')
+         ]);
       }
+     
       $checkLevel2 = UserReferral::where('user_id', $userMetaParent->user_id)->where('level', 1)->first();
       if(!empty($checkLevel2)) {
          $userReferral = UserReferral::where('user_id', $userMeta->user_id)->where('parent_id', $checkLevel2->user_id)->where('level', 2)->first();
