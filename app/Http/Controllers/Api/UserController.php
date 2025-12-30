@@ -159,7 +159,7 @@ class UserController extends Controller
          if(empty($userReferral)) {
             UserReferral::create([
                'user_id'    => $userMeta->user_id,
-               'parent_id'  => $checkLevel2->user_id,
+               'parent_id'  => $checkLevel2->parent_id,
                'level'        => 2,
                'created_at'  => date('Y-m-d H:i:s')
             ]);
